@@ -131,7 +131,6 @@ class Facec:
 
     def recognize(self, unknown_filename):
         print("called recognize")
-        app.face.load_all()
         unknown_image = face_recognition.load_image_file(self.load_unknown_file_by_name(unknown_filename))
         unknown_encoding_image = face_recognition.face_encodings(unknown_image)[0]
         print(self.known_encoding_faces)
@@ -234,7 +233,7 @@ def submit():
                         print("cool face has been saved",face_id.id)
                         face_data = {"id": face_id.id, "filename": filename, "created": created}
                         return_output = json.dumps({"id": user_id, "name": name, "face": [face_data]})
-                        #app.face.load_all()
+                        app.face.load_all()
                         return success_msg(return_output)
                     else:
                         print("An error saving face image.")
