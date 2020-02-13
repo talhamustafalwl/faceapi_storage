@@ -2,7 +2,7 @@ from flask import Flask, json, Response, request, render_template
 from werkzeug.utils import secure_filename
 import time
 from os import path, getcwd
-from flask_sqlalchemy import sqlalchemy
+from flask_sqlalchemy import SQLAlchemy
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
 #working in local But after heroku deploy give directory error
@@ -11,16 +11,16 @@ app = Flask(__name__)
 
 #using here sqlalchemy
 #change env to prod during live
-ENV = 'dev'
+ENV = 'prod'
 
 if ENV == 'dev':
     app.debug = True
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://talha:talha@localhost/face'
 else:
     app.debug = False
-    #heroku addons:create heroku-postgresql:hobby-dev --app faceapit
+    #heroku addons:create heroku-postgresql:hobby-dev --app appname
     #heroku config --app appname(generate postgresql db)
-    app.config['SQLALCHEMY_DATABASE_URI'] = ''
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://szidfxunekyrwl:101fa5e675b12d2002771fdf860c257e96e8992fdd975e15cc634f4672edb36e@ec2-54-80-184-43.compute-1.amazonaws.com:5432/d1tanhi36jtn41'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -50,6 +50,19 @@ class Face(db.Model):
         self.user_id=user_id
         self.filename = filename
         self.created = created
+
+#for token
+class Client(db.Model):
+    __tablename__ = 'client'
+    id = db.Column(db.Integer, primary_key=True)
+    created = db.Column(db.Integer)
+    token  =db.Column(db.String)
+
+
+    def __init__(self, created,token):
+        self.created=created
+        self.token = token
+##
         
 
 app.config['file_allowed'] = ['image/png', 'image/jpeg', 'image/jpg']
@@ -105,19 +118,23 @@ class Facec:
                 "created": row[3]
             }
             self.faces.append(face)
+            print("loading images face_image")
 
             face_image = face_recognition.load_image_file(self.load_train_file_by_name(filename))
+            print("loading images face_image_encoding")
             face_image_encoding = face_recognition.face_encodings(face_image)[0]
+            print("done images face_image_encoding")
             index_key = len(self.known_encoding_faces)
             self.known_encoding_faces.append(face_image_encoding)
             index_key_string = str(index_key)
             self.face_user_keys['{0}'.format(index_key_string)] = user_id
 
     def recognize(self, unknown_filename):
+        print("called recognize")
         unknown_image = face_recognition.load_image_file(self.load_unknown_file_by_name(unknown_filename))
         unknown_encoding_image = face_recognition.face_encodings(unknown_image)[0]
         print(self.known_encoding_faces)
-        results = face_recognition.compare_faces(self.known_encoding_faces, unknown_encoding_image);
+        results = face_recognition.compare_faces(self.known_encoding_faces, unknown_encoding_image)
 
         print("results", results)
 
@@ -144,10 +161,27 @@ def error_msg(error_message, status=500, mimetype='application/json'):
     return Response(json.dumps({"error": {"message": error_message}}), status=status, mimetype=mimetype)
 
 
+
+
+@app.route('/api/addtoken', methods=['POST'])
+def token():
+    print("token api called")
+    if request.method == 'POST':
+        token=request.form['token']
+        print("tokren==", token)
+        created = int(time.time())
+        token_add=Client(created,token)
+        db.session.add(token_add)
+        db.session.commit()
+        return_output = json.dumps({"id": token_add.id, "token": token_add.token})
+        return success_msg(return_output)
+
+
+
+# Hompage
 @app.route('/', methods=['GET'])
-def mainpage():
-    output = json.dumps({"msg": 'face recognition system working go to /api'})
-    return success_msg(output)
+def page_home():
+    return render_template('index.html')
 
 
 @app.route('/api', methods=['GET'])
@@ -181,7 +215,7 @@ def submit():
                 filename = secure_filename(file.filename)
                 trained_storage = path.join(app.config['storage'], 'trained')
                 file.save(path.join(trained_storage, filename))
-
+                print("file saved train")
                 created = int(time.time())
 
                 user_id=User(name,created)
@@ -281,7 +315,7 @@ def recognize():
             unknown_storage = path.join(app.config["storage"], 'unknown')
             file_path = path.join(unknown_storage, filename)
             file.save(file_path)
-
+            print("recognize file save")
             user_id = app.face.recognize(filename)
             if user_id:
                 user = get_user_by_id(user_id)
@@ -295,3 +329,7 @@ def recognize():
 
 if __name__ == '__main__':
     app.run()
+
+
+
+

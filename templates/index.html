@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+    <title>Face Recognition</title>
+
+    <script type="text/javascript" src="{{ url_for('static', filename='axios.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='app.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    <script type="text/javascript" src="{{ url_for('static', filename='lodash.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='immutable.js') }}"></script>
+</head>
+<body>
+
+
+<div class="container">
+    <h1>Face Recognition</h1>
+
+    <ul class="tabs">
+        <li data-section="train-content">Face Provide</li>
+        <li data-section="recognize-content">Recognize Face</li>
+    </ul>
+
+    
+    <div id="train-content">
+        <h2>Select Image</h2>
+        <form method="post" id="train">
+            <div class="message">
+
+            </div>
+            <p class="description">Upload face image</p>
+            <div class="form-item">
+                <label for="input-file">Face image</label>
+                <input type="file" name="file" id="input-file" accept="image/*"/>
+            </div>
+            <div class="form-item">
+                <label>Name</label>
+                <input id="name-field" name="name" value="" type="text" placeholder="Name"/>
+            </div>
+            <div class="form-action">
+                <button type="submit">Done</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="recognize-content">
+        <h2>Recognize</h2>
+
+        <form method="post" id="recognize">
+            <div class="message">
+
+            </div>
+            <p class="description">Upload image to login.</p>
+            <div class="form-item">
+                <label for="input-file">Image</label>
+                <input type="file" name="file" id="recognize-input-file" accept="image/*"/>
+            </div>
+
+            <div class="form-action">
+                <button type="submit">Recognize it</button>
+            </div>
+        </form>
+    </div>
+
+</div>
+</body>
+</html>
