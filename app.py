@@ -233,7 +233,7 @@ def submit():
                         print("cool face has been saved",face_id.id)
                         face_data = {"id": face_id.id, "filename": filename, "created": created}
                         return_output = json.dumps({"id": user_id, "name": name, "face": [face_data]})
-                        app.face.load_all()
+                        #app.face.load_all()
                         return success_msg(return_output)
                     else:
                         print("An error saving face image.")
@@ -316,6 +316,7 @@ def recognize():
             file_path = path.join(unknown_storage, filename)
             file.save(file_path)
             print("recognize file save")
+            app.face.load_all()
             user_id = app.face.recognize(filename)
             if user_id:
                 user = get_user_by_id(user_id)
