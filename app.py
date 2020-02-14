@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 #using here sqlalchemy
 #change env to prod during live
-ENV = 'dev'
+ENV = 'prod'
 
 if ENV == 'dev':
     app.debug = True
