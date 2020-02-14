@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 #using here sqlalchemy
 #change env to prod during live
-ENV = 'prod'
+ENV = 'dev'
 
 if ENV == 'dev':
     app.debug = True
@@ -157,7 +157,7 @@ def success_msg(output, status=200, mimetype='application/json'):
     return Response(output, status=status, mimetype=mimetype)
 
 
-def error_msg(error_message, status=500, mimetype='application/json'):
+def error_msg(error_message, status=203, mimetype='application/json'):
     return Response(json.dumps({"error": {"message": error_message}}), status=status, mimetype=mimetype)
 
 
@@ -177,6 +177,18 @@ def token():
         return success_msg(return_output)
 
 
+@app.route('/api/trains', methods=['POST'])
+def train():
+    if request.method == 'POST':
+        print(request.form)
+        print(request.files)
+        if 'file' not in request.files:
+            print ("Face image is required")
+            return error_msg("Face image is required.")
+        else:
+            output = json.dumps({"msg": 'working'})
+            print('working')
+            return success_msg(output)
 
 # Hompage
 @app.route('/', methods=['GET'])
@@ -193,11 +205,14 @@ def homepage():
 @app.route('/api/train', methods=['POST'])
 def submit():
     if request.method == 'POST':
-        if 'file' not in request.files:
+        if 'name' not in request.form:
+            print ("name is required")
+            return error_msg("name is not provided")
+        elif 'file' not in request.files:
                 name=request.form['name']
                 print("Information of that face", name)
                 print ("Face image is required")
-                return error_msg("Face image is required.")
+                return error_msg("Face image is not provided.")
         else:
             print("File request", request.files)
             file = request.files['file']
@@ -233,6 +248,7 @@ def submit():
                         print("cool face has been saved",face_id.id)
                         face_data = {"id": face_id.id, "filename": filename, "created": created}
                         return_output = json.dumps({"id": user_id, "name": name, "face": [face_data]})
+                        app.face = Facec(app)
                         app.face.load_all()
                         return success_msg(return_output)
                     else:
@@ -317,13 +333,14 @@ def recognize():
             file.save(file_path)
             print("recognize file save")
             user_id = app.face.recognize(filename)
+            print("recognizion done")
             if user_id:
+                print("user matched")
                 user = get_user_by_id(user_id)
                 message = {"message": "{0} image matched with your face".format(user["name"]),
                            "user": user}
                 return success_msg(json.dumps(message))
             else:
-
                 return error_msg("Image not matched with any person")
 
 
