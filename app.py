@@ -338,8 +338,9 @@ def recognize():
             if user_id:
                 print("user matched")
                 user = get_user_by_id(user_id)
-                message = {"message": "{0} image matched with your face".format(user["name"]),
-                           "user": user}
+                print(user)
+                #message = {"message": "{0} image matched with your face".format(user["name"]),"user": user}
+                message = {"user": user}
                 return success_msg(json.dumps(message))
             else:
                 return error_msg("Image not matched with any person")
