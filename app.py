@@ -3,7 +3,6 @@ from werkzeug.utils import secure_filename
 import time
 from os import path, getcwd
 from flask_sqlalchemy import SQLAlchemy
-import time
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
 #working in local But after heroku deploy give directory error
@@ -132,7 +131,7 @@ class Facec:
 
     def recognize(self, unknown_filename):
         print("called recognize")
-        time.sleep(2)
+        app.face.load_all()
         unknown_image = face_recognition.load_image_file(self.load_unknown_file_by_name(unknown_filename))
         unknown_encoding_image = face_recognition.face_encodings(unknown_image)[0]
         print(self.known_encoding_faces)
