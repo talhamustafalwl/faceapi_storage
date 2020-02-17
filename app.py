@@ -131,7 +131,6 @@ class Facec:
 
     def recognize(self, unknown_filename):
         print("called recognize")
-        app.face.load_all()
         unknown_image = face_recognition.load_image_file(self.load_unknown_file_by_name(unknown_filename))
         unknown_encoding_image = face_recognition.face_encodings(unknown_image)[0]
         print(self.known_encoding_faces)
@@ -333,6 +332,8 @@ def recognize():
             file_path = path.join(unknown_storage, filename)
             file.save(file_path)
             print("recognize file save")
+            app.face = Facec(app)
+            app.face.load_all()
             user_id = app.face.recognize(filename)
             print("recognizion done")
             if user_id:
