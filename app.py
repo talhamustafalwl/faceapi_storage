@@ -207,13 +207,13 @@ def submit():
     if request.method == 'POST':
         if 'name' not in request.form:
             print ("name is required")
-            error =json.dumps({"message":"name is not provided","status":"400", "data": [])
+            error =json.dumps({"message":"name is not provided","status":"400", "data": []})
             return error_msg(error)
         elif 'file' not in request.files:
                 name=request.form['name']
                 print("Information of that face", name)
                 print ("Face image is required")
-                error =json.dumps({"message":"Image not provided","status":"400", "data": [])
+                error =json.dumps({"message":"Image not provided","status":"400", "data": []})
             
                 return error_msg(error)
         else:
@@ -222,7 +222,7 @@ def submit():
             if file.mimetype not in app.config['file_allowed']:
 
                 print("File extension is not allowed")
-                error =json.dumps({"message":"File extension is not allowed","status":"400", "data": [])
+                error =json.dumps({"message":"File extension is not allowed","status":"400", "data": []})
                 return error_msg(error)
 
             else:
@@ -257,12 +257,12 @@ def submit():
                         return success_msg(return_output)
                     else:
                         print("An error saving face image.")
-                        error =json.dumps({"message":"An error saving face image.","status":"400", "data": [])
+                        error =json.dumps({"message":"An error saving face image.","status":"400", "data": []})
                         return error_msg(error)
 
                 else:
                     print("Something happend")
-                    error =json.dumps({"message":"An error inserting new user","status":"400", "data": [])
+                    error =json.dumps({"message":"An error inserting new user","status":"400", "data": []})
                     return error_msg(error)    
                     
 
@@ -331,7 +331,7 @@ def recognize():
         file = request.files['file']
         # file extension valiate
         if file.mimetype not in app.config['file_allowed']:
-            error =json.dumps({"message":"We  only allow file with *.png , *.jpg, *.jepg","status":"400", "data": [])
+            error =json.dumps({"message":"We  only allow file with *.png , *.jpg, *.jepg","status":"400", "data": []})
             return error_msg(error)
         else:
 
@@ -353,7 +353,7 @@ def recognize():
                 message =json.dumps({"message":"recognition done image matched","status":"200", "data": [user]})
                 return success_msg(message)
             else:
-                error =json.dumps({"message":"Image not matched with any face","status":"400", "data": [])
+                error =json.dumps({"message":"Image not matched with any face","status":"400", "data": []})
                 return error_msg(error)
 
 
