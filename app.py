@@ -251,7 +251,7 @@ def submit():
                     if face_id:
                         print("cool face has been saved",face_id.id)
                         face_data = {"id": face_id.id, "filename": filename, "created": created}
-                        return_output = json.dumps({"message":"training done","status":"ok", "data": {"face":[face_data], "name": name,"id": user_id}})
+                        return_output = json.dumps({"message":"training done","status":"200", "data": {"face":[face_data], "name": name,"id": user_id}})
                         app.face = Facec(app)
                         app.face.load_all()
                         return success_msg(return_output)
