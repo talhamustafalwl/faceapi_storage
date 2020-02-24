@@ -158,8 +158,7 @@ def success_msg(output, status=200, mimetype='application/json'):
 
 
 def error_msg(error_message, status=203, mimetype='application/json'):
-    return Response(json.dumps({"error": {"message": error_message}}), status=status, mimetype=mimetype)
-
+    return Response(error_message, status=status, mimetype=mimetype)
 
 
 
@@ -207,19 +206,23 @@ def submit():
     if request.method == 'POST':
         if 'name' not in request.form:
             print ("name is required")
-            return error_msg("name is not provided")
+            error =json.dumps({"message":"name is not provided","status":"400", "data": []})
+            return error_msg(error)
         elif 'file' not in request.files:
                 name=request.form['name']
                 print("Information of that face", name)
                 print ("Face image is required")
-                return error_msg("Face image is not provided.")
+                error =json.dumps({"message":"Image not provided","status":"400", "data": []})
+            
+                return error_msg(error)
         else:
             print("File request", request.files)
             file = request.files['file']
             if file.mimetype not in app.config['file_allowed']:
 
                 print("File extension is not allowed")
-                return error_msg("We are only allow upload file with *.png , *.jpg, *.jepg")
+                error =json.dumps({"message":"File extension is not allowed","status":"400", "data": []})
+                return error_msg(error)
 
             else:
 
@@ -247,17 +250,19 @@ def submit():
                     if face_id:
                         print("cool face has been saved",face_id.id)
                         face_data = {"id": face_id.id, "filename": filename, "created": created}
-                        return_output = json.dumps({"id": user_id, "name": name, "face": [face_data]})
+                        return_output = json.dumps({"message":"training done","status":"ok", "data": {"face":[face_data], "name": name,"id": user_id}})
                         app.face = Facec(app)
                         app.face.load_all()
                         return success_msg(return_output)
                     else:
                         print("An error saving face image.")
-                        return error_msg("error in saving face image.")
+                        error =json.dumps({"message":"An error saving face image.","status":"400", "data": []})
+                        return error_msg(error)
 
                 else:
                     print("Something happend")
-                    return error_msg("An error inserting new user")    
+                    error =json.dumps({"message":"An error inserting new user","status":"400", "data": []})
+                    return error_msg(error)    
                     
 
     return success_msg(return_output)
@@ -319,12 +324,14 @@ def user_profile(user_id):
 @app.route('/api/recognize', methods=['POST'])
 def recognize():
     if 'file' not in request.files:
-        return error_msg("Image is required")
+        error =json.dumps({"message":"Image is required","status":"400", "data": []})
+        return error_msg(error)
     else:
         file = request.files['file']
         # file extension valiate
         if file.mimetype not in app.config['file_allowed']:
-            return error_msg("We  only allow file with *.png , *.jpg, *.jepg")
+            error =json.dumps({"message":"We  only allow file with *.png , *.jpg, *.jepg","status":"400", "data": []})
+            return error_msg(error)
         else:
 
             filename = secure_filename(file.filename)
@@ -341,10 +348,12 @@ def recognize():
                 user = get_user_by_id(user_id)
                 print(user)
                 #message = {"message": "{0} image matched with your face".format(user["name"]),"user": user}
-                message = {"user": user}
-                return success_msg(json.dumps(message))
+               # message = {"user": user}
+                message =json.dumps({"message":"recognition done image matched","status":"200", "data": [user]})
+                return success_msg(message)
             else:
-                return error_msg("Image not matched with any person")
+                error =json.dumps({"message":"Image not matched with any face","status":"400", "data": []})
+                return error_msg(error)
 
 
 if __name__ == '__main__':
