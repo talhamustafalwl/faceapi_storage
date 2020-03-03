@@ -33,10 +33,12 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200))
     created = db.Column(db.Integer)
+    user_id = db.Column(db.Integer)
 
-    def __init__(self, name,created):
+    def __init__(self, name,created,user_id):
         self.name = name
         self.created = created
+        self.user_id = user_id
 
 
 class Face(db.Model):
@@ -52,19 +54,40 @@ class Face(db.Model):
         self.filename = filename
         self.created = created
 
-#for token
-class Client(db.Model):
-    __tablename__ = 'client'
+
+class Attendance(db.Model):
+    __tablename__ = 'attendance'
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer,nullable=False)
     created = db.Column(db.Integer)
-    token  =db.Column(db.String)
+    name= db.Column(db.String(80))
+    sync = db.Column(db.Integer)
+    time_in = db.Column(db.Integer)
+    time_out = db.Column(db.Integer)
+    break_in = db.Column(db.Integer)
+    break_out = db.Column(db.Integer)
+    toggletime= db.Column(db.Integer)
+    togglebreak = db.Column(db.Integer)
+    filenamein = db.Column(db.Text())
+    filenameout = db.Column(db.Text())
+    breaktime = db.Column(db.Integer)
+
+    def __init__(self, user_id,created,name,sync,time_in,time_out,break_in,break_out,toggletime,togglebreak,filenamein,filenameout,breaktime):
+        self.user_id=user_id
+        self.created = created
+        self.name=name
+        self.sync=sync
+        self.time_in=time_in
+        self.time_out=time_out
+        self.break_in=break_in
+        self.break_out=break_out
+        self.toggletime=toggletime
+        self.togglebreak=togglebreak
+        self.filenamein=filenamein
+        self.filenameout=filenameout
+        self.breaktime= breaktime
 
 
-    def __init__(self, created,token):
-        self.created=created
-        self.token = token
-##
-        
 
 app.config['file_allowed'] = ['image/png', 'image/jpeg', 'image/jpg']
 app.config['storage'] = path.join(getcwd(), 'storage')
@@ -133,24 +156,49 @@ class Facec:
     def recognize(self, unknown_filename):
         print("called recognize")
         unknown_image = face_recognition.load_image_file(self.load_unknown_file_by_name(unknown_filename))
-        unknown_encoding_image = face_recognition.face_encodings(unknown_image)[0]
-        print(self.known_encoding_faces)
-        results = face_recognition.compare_faces(self.known_encoding_faces, unknown_encoding_image, tolerance=0.45)
+        ##handle index out of range
+        if not len(face_recognition.face_encodings(unknown_image)):
+            print( "can't be encoded")
+            return None
+        ##
+        unknown_encoding_image = face_recognition.face_encodings(unknown_image)[0] 
+        if self.known_encoding_faces == []:
+            print("array is empty")
+            self.load_all()
+        resultsval = face_recognition.face_distance(self.known_encoding_faces, unknown_encoding_image)
+        print("resultsval", resultsval)
+        
+        #results = face_recognition.compare_faces(self.known_encoding_faces, unknown_encoding_image, tolerance=0.5)
+        #print("results", results)
 
-        print("results", results)
 
-        index_key = 0
-        for matched in results:
-
-            if matched:
-                # so we found this user with index key and find him
-                user_id = self.load_user_by_index_key(index_key)
-
-                return user_id
-
-            index_key = index_key + 1
-
+        min=1
+        for valuee in resultsval:
+             if min >= valuee:
+                 min = valuee
+        print(min)
+        if min < 0.56:
+            import numpy as np
+            print(np.where(resultsval == min)[0][0])
+            index_key=np.where(resultsval == min)[0][0]
+            user_id = self.load_user_by_index_key(index_key)
+            return user_id
         return None
+         
+       # index_key = 0
+       # for matched in results:
+#
+       #     if matched:
+       #         # so we found this user with index key and find him
+       #         user_id = self.load_user_by_index_key(index_key)
+#
+       #         return user_id
+#
+       #     index_key = index_key + 1
+#
+       # return None
+
+
 
 app.face = Facec(app)
 
@@ -205,7 +253,17 @@ def homepage():
 @app.route('/api/train', methods=['POST'])
 def submit():
     if request.method == 'POST':
-        if 'name' not in request.form:
+        if 'auth' not in request.headers or request.headers['auth'] != "abc123xyz":
+           print ("not authenticated")
+           error =json.dumps({"message":"not authenticated","status":"400", "data": []})
+           return error_msg(error)
+
+        elif 'user_id' not in request.form:
+            print ("user_id is required")
+            error =json.dumps({"message":"user_id is not provided","status":"400", "data": []})
+            return error_msg(error)
+
+        elif 'name' not in request.form:
             print ("name is required")
             error =json.dumps({"message":"name is not provided","status":"400", "data": []})
             return error_msg(error)
@@ -214,7 +272,6 @@ def submit():
                 print("Information of that face", name)
                 print ("Face image is required")
                 error =json.dumps({"message":"Image not provided","status":"400", "data": []})
-            
                 return error_msg(error)
         else:
             print("File request", request.files)
@@ -228,6 +285,7 @@ def submit():
             else:
 
                 name=request.form['name']
+                user_id=request.form['user_id']
                 print("Information of that face", name)
                 print("File is allowed and will be saved in ", app.config['storage'])
 
@@ -237,7 +295,7 @@ def submit():
                 print("file saved train")
                 created = int(time.time())
 
-                user_id=User(name,created)
+                user_id=User(name,created,user_id)
 
                 db.session.add(user_id)
                 db.session.commit()
@@ -272,7 +330,7 @@ def submit():
 
 def get_user_by_id(user_id):
     user = {}
-    results=db.session.query(User.id,User.name,User.created,Face.id,Face.user_id,Face.filename,Face.created).outerjoin(Face,User.id== Face.user_id).filter(User.id == user_id).all()
+    results=db.session.query(User.id,User.name,User.created,Face.id,Face.user_id,Face.filename,Face.created,User.user_id).outerjoin(Face,User.id== Face.user_id).filter(User.id == user_id).all()
     index = 0
     for row in results:
      # print(row)
@@ -287,6 +345,7 @@ def get_user_by_id(user_id):
                 "id": row[0],
                 "name": row[1],
                 "created": row[2],
+                "user_id": row[7],
                 "faces": [],
             }
         if row[3]:
