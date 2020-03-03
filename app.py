@@ -21,7 +21,7 @@ else:
     app.debug = False
     #heroku addons:create heroku-postgresql:hobby-dev --app appname
     #heroku config --app appname(generate postgresql db)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://gbgmmisnbwhkse:e2f58cb1a05191a497b2a00bbfedeffa2749457cdce88567a629ae4d9fc718ec@ec2-35-168-54-239.compute-1.amazonaws.com:5432/dfraidbl5hb4m1'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://rqdsdpzcdocsdt:6fbbdc2a16b3994454ef1bf17b043d3e8005f8798aa138ec660aabc996eda99a@ec2-34-233-186-251.compute-1.amazonaws.com:5432/dee9e6frullrdv'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
