@@ -1,5 +1,4 @@
 appdirs==1.4.3
-APScheduler==2.1.2
 asn1crypto==0.24.0
 beautifulsoup4==4.6.0
 certifi==2019.11.28
