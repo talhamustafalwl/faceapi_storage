@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import time
 from apscheduler.scheduler import Scheduler
-from threading import Thread
+#from threading import Thread
 import requests 
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
@@ -471,7 +471,7 @@ def recognize():
                 
                 message =json.dumps({"message":"{} {}".format(stringp,user["name"]),"status":"200", "data": [user]})
                 #
-                Thread(target=sync_func).start()
+                #Thread(target=sync_func).start()
                 #
                 return success_msg(message)
 
