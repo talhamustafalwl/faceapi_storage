@@ -3,6 +3,8 @@ from werkzeug.utils import secure_filename
 import time
 from os import path, getcwd
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+import time
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
 #working in local But after heroku deploy give directory error
@@ -225,19 +227,6 @@ def token():
         return success_msg(return_output)
 
 
-@app.route('/api/trains', methods=['POST'])
-def train():
-    if request.method == 'POST':
-        print(request.form)
-        print(request.files)
-        if 'file' not in request.files:
-            print ("Face image is required")
-            return error_msg("Face image is required.")
-        else:
-            output = json.dumps({"msg": 'working'})
-            print('working')
-            return success_msg(output)
-
 # Hompage
 @app.route('/', methods=['GET'])
 def page_home():
@@ -399,25 +388,96 @@ def recognize():
             file_path = path.join(unknown_storage, filename)
             file.save(file_path)
             print("recognize file save")
-            app.face = Facec(app)
-            app.face.load_all()
+            #app.face = Facec(app)
+            #app.face.load_all()
             user_id = app.face.recognize(filename)
             print("recognizion done")
             if user_id:
-                print("user matched")
-                user = get_user_by_id(user_id)
-                print(user)
-                #message = {"message": "{0} image matched with your face".format(user["name"]),"user": user}
-               # message = {"user": user}
-                message =json.dumps({"message":"recognition done image matched","status":"200", "data": [user]})
+                print("user matched id={}".format(user_id))
+                user = get_user_by_id(user_id) 
+
+                if 'button' in request.form: #only if
+                    res = Attendance.query.filter_by(user_id = user["user_id"]).order_by(Attendance.id.desc()).first()
+                    
+                    if request.form['button'] == "time":
+                        print("button time")
+                        if res == None or res.toggletime == 0:
+                            stringp="Welcome"
+                            user_id=user["user_id"]
+                            name=user["name"]
+                            created=int(time.time())
+                            sync=0
+                            toggletime=1
+                            togglebreak=0
+                            time_in=int(time.time())
+                            time_out=0
+                            break_in=0
+                            break_out=0
+                            breaktime=0
+                            filenamein=filename
+                            filenameout=''
+
+                            attendance_id=Attendance(user_id,created,name,sync,time_in,time_out,break_in,break_out,toggletime,togglebreak,filenamein,filenameout,breaktime)
+                            db.session.add(attendance_id)
+                            db.session.commit()
+                            
+                        else:
+                            print("in else condition")
+                            stringp="Good Bye"
+                            res.toggletime=0
+                            res.sync=0
+                            res.time_out=int(time.time())
+                            res.filenameout=filename
+                            dt_object1 = datetime.fromtimestamp(res.time_in)
+                            print(dt_object1)
+                            db.session.commit()
+                            #dt_object1 = datetime.fromtimestamp(res.time_in)
+                            #dt_object2 = datetime.fromtimestamp(res.time_out)
+                            
+                        
+                    if request.form['button'] == "break":
+                        print("in break condition")
+                        if res.toggletime == 1:
+                            print("Can take break")
+                            if res.togglebreak == 0:
+                                stringp="Good bye take break"
+                                res.break_in=int(time.time())
+                                res.sync=0
+                                res.togglebreak=1
+                                db.session.commit()
+                                print("break out")
+                               
+                            elif res.togglebreak == 1:
+                                stringp="Welcome back from break"
+                                res.break_out=int(time.time())
+                                res.togglebreak=0
+                                res.sync=0
+                                rr=(res.break_out - res.break_in)
+                                res.breaktime=res.breaktime + rr
+                                db.session.commit()
+                                print("break")
+                               
+                            else:
+                                print("error")
+                        else:
+                            print("break else condition")
+                            message =json.dumps({"message":"Not time in","status":"400", "data": []})
+                            return error_msg(message)
+                
+                
+                message =json.dumps({"message":"{} {}".format(stringp,user["name"]),"status":"200", "data": [user]})
                 return success_msg(message)
+
             else:
-                error =json.dumps({"message":"Image not matched with any face","status":"400", "data": []})
+                error =json.dumps({"message":"Image not matched with any person","status":"400", "data": []})
                 return error_msg(error)
+
+            
+
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host="0.0.0.0")
 
 
 
