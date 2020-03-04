@@ -5,6 +5,9 @@ from os import path, getcwd
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import time
+from apscheduler.scheduler import Scheduler
+from threading import Thread
+import requests 
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
 #working in local But after heroku deploy give directory error
@@ -13,7 +16,7 @@ app = Flask(__name__)
 
 #using here sqlalchemy
 #change env to prod during live
-ENV = 'prod'
+ENV = 'dev'
 
 if ENV == 'dev':
 
@@ -23,6 +26,7 @@ else:
     app.debug = False
     #heroku addons:create heroku-postgresql:hobby-dev --app appname
     #heroku config --app appname(generate postgresql db)
+    #heroku pg:reset DATABASE
     app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://rqdsdpzcdocsdt:6fbbdc2a16b3994454ef1bf17b043d3e8005f8798aa138ec660aabc996eda99a@ec2-34-233-186-251.compute-1.amazonaws.com:5432/dee9e6frullrdv'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -382,7 +386,7 @@ def recognize():
             error =json.dumps({"message":"We  only allow file with *.png , *.jpg, *.jepg","status":"400", "data": []})
             return error_msg(error)
         else:
-
+            stringp=''
             filename = secure_filename(file.filename)
             unknown_storage = path.join(app.config["storage"], 'unknown')
             file_path = path.join(unknown_storage, filename)
@@ -466,6 +470,9 @@ def recognize():
                 
                 
                 message =json.dumps({"message":"{} {}".format(stringp,user["name"]),"status":"200", "data": [user]})
+                #
+                Thread(target=sync_func).start()
+                #
                 return success_msg(message)
 
             else:
@@ -473,6 +480,76 @@ def recognize():
                 return error_msg(error)
 
             
+
+
+
+
+def sonoff():
+    print("For Testing ===============>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ")
+    
+    # data = { 
+    #         "deviceid": "100086f0df", 
+    #         "data": {
+    #             "switch": "on" 
+    #         } 
+    #     }
+    # r = requests.post(url = "http://192.168.88.81:8081/zeroconf/switch", json = data)  
+
+    # import time
+    # time.sleep(1)
+    # data = { 
+    #         "deviceid": "100086f0df", 
+    #         "data": {
+    #             "switch": "off" 
+    #         } 
+    #     }
+    # r = requests.post(url = "http://192.168.88.81:8081/zeroconf/switch", json = data
+
+
+
+
+sched = Scheduler()
+sched.start()
+
+def auto_to():
+    print("Every 5 seconds")
+    ressync = Attendance.query.filter_by(toggletime=1).all()
+    print(ressync)
+    for i in ressync:
+        rr=int(time.time()) - i.time_in
+        print(rr)
+        if( rr >= 5000):
+            print("timeout automatically")
+            i.toggletime=0
+            db.session.commit()
+
+
+
+def sync_func():
+    print("---- after_request ------")
+    syncdata = Attendance.query.filter_by(sync=0).all()
+    print("syncdata---->",syncdata)
+    for i in syncdata:
+        API_ENDPOINT = "http://portal.livewirestg.com/api/webservice/OfflineSubmitAttendance"
+        data = {'userName':i.name,'userId':i.user_id,'TimeIn':i.time_in,'TimeOut':i.time_out,'breaktime':i.breaktime}
+        print(data)
+        r = requests.post(url = API_ENDPOINT, data = data) 
+        print(r.json() == 1)
+        print("json result",r.json())
+        if r.json() == 1:
+            i.sync=1
+            db.session.commit() 
+            message =json.dumps({"message":"data sync","status":"200", "data": []})
+        ###
+        else:
+            message =json.dumps({"message":"error sync","status":"200", "data": []})
+    print("syncdata message ------>",message)
+    return message
+
+
+#sched.add_interval_job(auto_to, seconds = 500)
+#sched.add_interval_job(sync_func, seconds = 10)
+
 
 
 
