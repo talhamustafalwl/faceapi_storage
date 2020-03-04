@@ -5,9 +5,9 @@ from os import path, getcwd
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import time
-#from apscheduler.scheduler import Scheduler
-from threading import Thread
 import requests 
+from apscheduler.scheduler import Scheduler
+from threading import Thread
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
 #working in local But after heroku deploy give directory error
