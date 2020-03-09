@@ -2,12 +2,15 @@ from flask import Flask, json, Response, request, render_template
 from werkzeug.utils import secure_filename
 import time
 from os import path, getcwd
+import os
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import time
 import requests 
 from apscheduler.scheduler import Scheduler
 from threading import Thread
+from PIL import Image  
+import PIL  
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
 #working in local But after heroku deploy give directory error
@@ -165,7 +168,7 @@ class Facec:
         ##handle index out of range
         if not len(face_recognition.face_encodings(unknown_image)):
             print( "can't be encoded")
-            return None
+            return 'encoding error'
         ##
         unknown_encoding_image = face_recognition.face_encodings(unknown_image)[0] 
         if self.known_encoding_faces == []:
@@ -183,7 +186,7 @@ class Facec:
              if min >= valuee:
                  min = valuee
         print(min)
-        if min < 0.56:
+        if min < 0.5:
             import numpy as np
             print(np.where(resultsval == min)[0][0])
             index_key=np.where(resultsval == min)[0][0]
@@ -285,6 +288,18 @@ def submit():
                 filename = secure_filename(file.filename)
                 trained_storage = path.join(app.config['storage'], 'trained')
                 file.save(path.join(trained_storage, filename))
+
+                if path.isfile('storage/trained/'+file.filename):
+                    unknown_image2 = face_recognition.load_image_file('storage/trained/'+file.filename)
+                    print( "handeling")
+                    if not len(face_recognition.face_encodings(unknown_image2)):
+                        print( "can't be encoded")
+                        os.remove('storage/trained/'+file.filename)
+                        print( "file delete")
+                        error =json.dumps({"message":"An error saving face image","status":"300", "data": []})
+                        return error_msg(error) 
+
+
                 print("file saved train")
                 created = int(time.time())
 
@@ -308,7 +323,7 @@ def submit():
                         return success_msg(return_output)
                     else:
                         print("An error saving face image.")
-                        error =json.dumps({"message":"An error saving face image.","status":"400", "data": []})
+                        error =json.dumps({"message":"face not found in image.","status":"300", "data": []})
                         return error_msg(error)
 
                 else:
@@ -396,6 +411,10 @@ def recognize():
             app.face.load_all()
             user_id = app.face.recognize(filename)
             print("recognizion done")
+            if user_id == 'encoding error':
+                    error =json.dumps({"message":"Please take your face image again","status":"300", "data": []})
+                    return error_msg(error)
+                    
             if user_id:
                 print("user matched id={}".format(user_id))
                 user = get_user_by_id(user_id) 
@@ -424,6 +443,9 @@ def recognize():
                             attendance_id=Attendance(user_id,created,name,sync,time_in,time_out,break_in,break_out,toggletime,togglebreak,filenamein,filenameout,breaktime)
                             db.session.add(attendance_id)
                             db.session.commit()
+                            # creating a image object (main image)  
+                            im1 = Image.open(r"storage/unknown/"+filename)
+                            im1.save('storage/time_in/'+filename)
                             
                         else:
                             print("in else condition")
@@ -435,15 +457,18 @@ def recognize():
                             dt_object1 = datetime.fromtimestamp(res.time_in)
                             print(dt_object1)
                             db.session.commit()
+                            # creating a image object (main image)  
+                            im1 = Image.open(r"storage/unknown/"+filename)
+                            im1.save('storage/time_out/'+filename)
                             #dt_object1 = datetime.fromtimestamp(res.time_in)
                             #dt_object2 = datetime.fromtimestamp(res.time_out)
                             
                         
                     if request.form['button'] == "break":
                         print("in break condition")
-                        if res.toggletime == 1:
+                        if res and res.toggletime == 1:
                             print("Can take break")
-                            if res.togglebreak == 0:
+                            if res and res.togglebreak == 0:
                                 stringp="Good bye take break"
                                 res.break_in=int(time.time())
                                 res.sync=0
@@ -513,6 +538,9 @@ def sonoff():
 
 def auto_to():
     print("Every 5 seconds")
+    files = glob.glob('storage/unknown/*')
+    for f in files:
+        os.remove(f)
     ressync = Attendance.query.filter_by(toggletime=1).all()
     print(ressync)
     for i in ressync:
