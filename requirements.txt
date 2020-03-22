@@ -6,7 +6,7 @@ chardet==3.0.4
 Click==7.0
 configparser==4.0.2
 contextlib2==0.6.0.post1
-cryptography==2.1.4
+cryptography==2.3
 distlib==0.3.0
 dlib==19.19.0
 enum34==1.1.6
