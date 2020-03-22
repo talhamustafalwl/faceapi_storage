@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 import time
 from os import path, getcwd
 import os
+import glob
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import time
@@ -11,6 +12,7 @@ from apscheduler.scheduler import Scheduler
 from threading import Thread
 from PIL import Image  
 import PIL  
+from datetime import date
 #first command on console for local test(pipenv shell)
 #Storing traing images in storage/training and for recognzing storage/training folder
 #working in local But after heroku deploy give directory error
@@ -19,7 +21,7 @@ app = Flask(__name__)
 
 #using here sqlalchemy
 #change env to prod during live
-ENV = 'prod'
+ENV = 'dev'
 
 if ENV == 'dev':
 
@@ -280,6 +282,19 @@ def submit():
 
             else:
 
+                #delete previous record
+                User.query.filter_by(user_id=request.form['user_id']).delete()
+                db.session.commit()
+                delfilename=Face.query.filter_by(user_id=request.form['user_id']).first()
+                if delfilename:
+                    filesd = 'storage/trained/{}'.format(delfilename.filename)
+                    print(">>>>file to delete",filesd)
+                    os.remove(filesd)
+                Face.query.filter_by(user_id=request.form['user_id']).delete()
+                db.session.commit()
+
+                ####
+
                 name=request.form['name']
                 user_id=request.form['user_id']
                 print("Information of that face", name)
@@ -310,7 +325,7 @@ def submit():
                 if user_id:
 
                     print("User saved in data", name, user_id.id)
-                    user_id=user_id.id
+                    user_id=user_id.user_id
                     face_id=Face(user_id,filename,created)
                     db.session.add(face_id)
                     db.session.commit()
@@ -338,7 +353,7 @@ def submit():
 
 def get_user_by_id(user_id):
     user = {}
-    results=db.session.query(User.id,User.name,User.created,Face.id,Face.user_id,Face.filename,Face.created,User.user_id).outerjoin(Face,User.id== Face.user_id).filter(User.id == user_id).all()
+    results=db.session.query(User.id,User.name,User.created,Face.id,Face.user_id,Face.filename,Face.created,User.user_id).outerjoin(Face,User.user_id== Face.user_id).filter(User.user_id == user_id).all()
     index = 0
     for row in results:
      # print(row)
@@ -412,15 +427,39 @@ def recognize():
             user_id = app.face.recognize(filename)
             print("recognizion done")
             if user_id == 'encoding error':
-                    error =json.dumps({"message":"Please take your face image again","status":"300", "data": []})
+                    error =json.dumps({"message":"face not found in image retry","status":"300", "data": []})
                     return error_msg(error)
                     
             if user_id:
                 print("user matched id={}".format(user_id))
+                print(">>>>",user_id)
                 user = get_user_by_id(user_id) 
-
+                
+                print(">>>>",user)            
                 if 'button' in request.form: #only if
                     res = Attendance.query.filter_by(user_id = user["user_id"]).order_by(Attendance.id.desc()).first()
+                    
+                    #working date time in
+                    #if res != None:
+                    #    dt_object1 = datetime.fromtimestamp(res.time_in).date()
+                    #    print("time_in",dt_object1)
+                    #    print("date",date.today())
+                    #    if dt_object1 == date.today() and res.toggletime == 0:
+                    #        print("break condition")
+                    #        error =json.dumps({"message":"Today attendance was marked","status":"400", "data": []})
+                    #        return error_msg(error)
+
+                    #timeout wait for 8 hour for next time in
+                    if res != None and res.time_out != 0:
+                        dt_objectout = datetime.fromtimestamp(res.time_out)
+                        print("time_out",dt_objectout)
+                        print("datetime",datetime.now().replace(microsecond=0))
+                        diff=datetime.now() - dt_objectout
+                        print("diff in sec",diff.total_seconds())
+                        if (diff.total_seconds() < 60):
+                            message =json.dumps({"message":"Next Timein possible after 1 min from timeout","status":"400", "data": []})
+                            return error_msg(message)
+
                     
                     if request.form['button'] == "time":
                         print("button time")
@@ -448,6 +487,16 @@ def recognize():
                             im1.save('storage/time_in/'+filename)
                             
                         else:
+                            dt_object1 = datetime.fromtimestamp(res.time_in)
+                            print("time_in",dt_object1)
+                            print("datetime",datetime.now().replace(microsecond=0))
+                            diff=datetime.now() - dt_object1
+                            print("diff in sec",diff.total_seconds())
+                            if (diff.total_seconds() < 60):
+                                message =json.dumps({"message":"Timeout possible after 1 min from timein","status":"400", "data": []})
+                                return error_msg(message)
+
+
                             print("in else condition")
                             stringp="Good Bye"
                             res.toggletime=0
@@ -469,7 +518,7 @@ def recognize():
                         if res and res.toggletime == 1:
                             print("Can take break")
                             if res and res.togglebreak == 0:
-                                stringp="Good bye take break"
+                                stringp="Good bye"
                                 res.break_in=int(time.time())
                                 res.sync=0
                                 res.togglebreak=1
@@ -477,7 +526,7 @@ def recognize():
                                 print("break out")
                                
                             elif res.togglebreak == 1:
-                                stringp="Welcome back from break"
+                                stringp="Welcome back"
                                 res.break_out=int(time.time())
                                 res.togglebreak=0
                                 res.sync=0
@@ -494,7 +543,7 @@ def recognize():
                             return error_msg(message)
                 
                 
-                message =json.dumps({"message":"{} {}".format(stringp,user["name"]),"status":"200", "data": [user]})
+                message =json.dumps({"message":"{} {} :)".format(stringp,user["name"]),"status":"200", "data": [user]})
                 #
                 Thread(target=sync_func).start()
                 #
