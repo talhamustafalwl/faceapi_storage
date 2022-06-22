@@ -29,7 +29,7 @@ lxml==4.2.1
 MarkupSafe==1.1.1
 mysql-connector-python==2.1.6
 mysql-utilities==1.6.4
-numpy==1.16.6
+numpy==1.22.0
 olefile==0.45.1
 PAM==0.4.2
 paramiko==2.0.0
